@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+var (
+	AnError = errors.New("an error")
+)
+
 func runSum(last Step, current Step) error {
 	result := 2 + 2
 	current.Set("result", result)
@@ -30,7 +34,7 @@ func checkSum(last Step, current Step) error {
 }
 
 func errorResult(last Step, current Step) error {
-	return errors.New("an error")
+	return AnError
 }
 
 func TestRunEmptyMachine(t *testing.T) {
@@ -116,5 +120,73 @@ func TestSumStepMachineResumeToCorrectStep(t *testing.T) {
 		if v.(bool) != true {
 			t.Error("s1 was not correctly restored")
 		}
+	}
+}
+
+func TestOnStepChangeRuns(t *testing.T) {
+	s1 := NewStep("step1", runSum, restoreSum)
+	s2 := NewStep("step2", checkSum, nil)
+	Chain(s1, s2)
+
+	m := NewMachine("test", s1)
+
+	fromReceived := []Step{}
+	toReceived := []Step{}
+	m.OnStepChange(func(from, to Step) {
+		fromReceived = append(fromReceived, from)
+		toReceived = append(toReceived, to)
+	})
+
+	m.Run()
+
+	if fromReceived[0] != s1 && toReceived[0] != s2 {
+		t.Error("invalid sequence received at index 0")
+	}
+
+	if fromReceived[1] != s2 && toReceived[1] != nil {
+		t.Error("invalid sequence received at index 1")
+	}
+}
+
+func TestOnStepErrorRuns(t *testing.T) {
+	s1 := NewStep("step1", runSum, restoreSum)
+	s2 := NewStep("step2", errorResult, nil)
+	Chain(s1, s2)
+
+	m := NewMachine("test", s1)
+
+	var stepReceived Step
+	var errorReceived error
+	m.OnStepError(func(step Step, err error) {
+		stepReceived = step
+		errorReceived = err
+	})
+
+	m.Run()
+
+	if stepReceived != s2 {
+		t.Errorf("unexpected step received: %v", stepReceived)
+	}
+
+	if errorReceived != AnError {
+		t.Errorf("unexpected error received: %v", errorReceived)
+	}
+}
+
+func TestOnStepRestoreRuns(t *testing.T) {
+	s1 := NewStep("step1", nil, restoreSum)
+	s2 := NewStep("step2", checkSum, nil)
+	Chain(s1, s2)
+
+	m := NewMachine("test", s1)
+
+	var stepReceived Step
+	m.OnStepRestore(func(step Step) {
+		stepReceived = step
+	})
+
+	m.Resume("step2")
+	if stepReceived != s1 {
+		t.Errorf("unexpected step was restored: %v", stepReceived)
 	}
 }
