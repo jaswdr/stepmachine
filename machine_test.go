@@ -8,12 +8,14 @@ import (
 func runSum(last Step, current Step) error {
 	result := 2 + 2
 	current.Set("result", result)
+	current.Println("runSum executed")
 	return nil
 }
 
 func restoreSum(last Step, current Step) error {
 	current.Set("result", 4)
 	current.Set("restored", true)
+	current.Println("restoreSum executed")
 	return nil
 }
 
@@ -23,6 +25,7 @@ func checkSum(last Step, current Step) error {
 	}
 
 	current.Set("success", true)
+	current.Println("checkSum executed")
 	return nil
 }
 

@@ -1,5 +1,10 @@
 package stepmachine
 
+import (
+	"bytes"
+	"log"
+)
+
 type Step interface {
 	ID() string
 	SetNext(Step)
@@ -10,6 +15,8 @@ type Step interface {
 	Set(string, interface{})
 	Restore() error
 	Run() error
+	Println(v ...interface{})
+	Logs() string
 }
 
 type step struct {
@@ -30,10 +37,24 @@ type step struct {
 
 	// values is a map with values of the current step
 	values map[string]interface{}
+
+	// buffer with all log messages
+	loggerBuffer *bytes.Buffer
+
+	// messages logger
+	logger *log.Logger
 }
 
 func (s *step) ID() string {
 	return s.id
+}
+
+func (s *step) Println(v ...interface{}) {
+	s.logger.Println(v...)
+}
+
+func (s *step) Logs() string {
+	return s.loggerBuffer.String()
 }
 
 func (s *step) Get(key string) interface{} {
@@ -82,10 +103,15 @@ func Chain(steps ...Step) {
 }
 
 func NewStep(id string, runFn func(previousStep, currentStep Step) error, restoreFn func(previousStep, currentStep Step) error) Step {
+	buffer := bytes.NewBuffer(nil)
+	logger := log.New(buffer, id+" ", log.Ldate|log.Ltime|log.Lshortfile)
+
 	return &step{
-		id:        id,
-		runFn:     runFn,
-		restoreFn: restoreFn,
-		values:    make(map[string]interface{}),
+		id:           id,
+		runFn:        runFn,
+		restoreFn:    restoreFn,
+		values:       make(map[string]interface{}),
+		loggerBuffer: buffer,
+		logger:       logger,
 	}
 }

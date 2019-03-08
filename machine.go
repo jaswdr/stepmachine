@@ -1,6 +1,8 @@
 package stepmachine
 
-import "errors"
+import (
+	"errors"
+)
 
 type machine struct {
 	initialStep Step
@@ -45,6 +47,18 @@ func (m *machine) Resume(stepID string) (Step, error) {
 
 	m.initialStep = currentStep
 	return m.Run()
+}
+
+func (m *machine) Stack() string {
+	stack := "\n+++ START OF STACK +++\n"
+	currentStep := m.initialStep
+	for currentStep != nil {
+		stack += currentStep.Logs()
+		currentStep = currentStep.Next()
+	}
+	stack += "+++  END OF STACK  +++\n"
+
+	return stack
 }
 
 func NewMachine(initialStep Step) *machine {

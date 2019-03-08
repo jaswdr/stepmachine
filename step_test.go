@@ -1,6 +1,7 @@
 package stepmachine
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -32,5 +33,17 @@ func TestChain(t *testing.T) {
 
 	if s3.Next() != nil {
 		t.Error("next step of s3 was not nil")
+	}
+}
+
+func TestLogger(t *testing.T) {
+	s := NewStep("log-test", func(last Step, current Step) error {
+		current.Println("this is a test")
+		return nil
+	}, nil)
+
+	s.Run()
+	if strings.Index(s.Logs(), "this is a test") < 0 {
+		t.Error("invalid log stream")
 	}
 }
