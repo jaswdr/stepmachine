@@ -48,11 +48,19 @@ func main() {
 	// create a new step machine with the sumStep as initial step
 	m := stepmachine.NewMachine(sumStep)
 
-	// Run the step machine
+	// run the step machine
 	lastStep, err := m.Run()
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println(lastStep.Get("result").(int)) // 9
+
+    // if something bad happen you only need to resume the machine
+    lastStep, err = m.Resume("addFiveStep")
+    if err != nil {
+        panic(err)
+    }
 
 	fmt.Println(lastStep.Get("result").(int)) // 9
 }
