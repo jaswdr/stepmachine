@@ -66,5 +66,9 @@ func main() {
 }
 ```
 
+### Logging
+
+Is possible to log inside a step and print in the end, use `Step.Println()` to log a message and `Machine.Stack()` to retrieve the log stack with all messages.
+
 ## Author
     Jonathan A. Schweder <jonathanschweder@gmail.com>
