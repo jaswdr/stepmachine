@@ -2,6 +2,8 @@
 
 > Easiest way to handle errors that happen in the middle of a proccess
 
+[![Build Status](https://travis-ci.org/jaswdr/stepmachine.svg?branch=master)](https://travis-ci.org/jaswdr/stepmachine)
+
 ### Background
 
 When you have a collections of steps that need to run and you need to handle errors when something bad happen you can use this package to run and resume those workloads.
