@@ -34,7 +34,7 @@ func errorResult(last Step, current Step) error {
 }
 
 func TestRunEmptyMachine(t *testing.T) {
-	m := NewMachine(nil)
+	m := NewMachine("test", nil)
 	l, err := m.Run()
 	if err != nil {
 		t.Errorf("running a empty machine returned a error: %s", err)
@@ -47,7 +47,7 @@ func TestRunEmptyMachine(t *testing.T) {
 
 func TestSumStepMachine(t *testing.T) {
 	s := NewStep("sum", runSum, restoreSum)
-	m := NewMachine(s)
+	m := NewMachine("test", s)
 	l, err := m.Run()
 	if err != nil {
 		t.Error(err)
@@ -63,7 +63,7 @@ func TestSumStepMachineResultIsAccessable(t *testing.T) {
 	s2 := NewStep("step2", checkSum, nil)
 	Chain(s1, s2)
 
-	m := NewMachine(s1)
+	m := NewMachine("test", s1)
 	l, err := m.Run()
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -83,7 +83,7 @@ func TestSumStepMachineReturnErrorStepWhenAnErrorHappen(t *testing.T) {
 	s2 := NewStep("step2", errorResult, nil)
 	Chain(s1, s2)
 
-	m := NewMachine(s1)
+	m := NewMachine("test", s1)
 	l, err := m.Run()
 	if err == nil {
 		t.Error("an error was expected")
@@ -99,7 +99,7 @@ func TestSumStepMachineResumeToCorrectStep(t *testing.T) {
 	s2 := NewStep("step2", checkSum, nil)
 	Chain(s1, s2)
 
-	m := NewMachine(s1)
+	m := NewMachine("test", s1)
 	l, err := m.Resume("step2")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)

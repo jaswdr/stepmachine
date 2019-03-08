@@ -5,6 +5,7 @@ import (
 )
 
 type machine struct {
+	name        string
 	initialStep Step
 }
 
@@ -51,6 +52,7 @@ func (m *machine) Resume(stepID string) (Step, error) {
 
 func (m *machine) Stack() string {
 	stack := "\n+++ START OF STACK +++\n"
+	stack += "NAME: " + m.name + "\n\n"
 	currentStep := m.initialStep
 	for currentStep != nil {
 		stack += currentStep.Logs()
@@ -61,8 +63,9 @@ func (m *machine) Stack() string {
 	return stack
 }
 
-func NewMachine(initialStep Step) *machine {
+func NewMachine(name string, initialStep Step) *machine {
 	return &machine{
+		name:        name,
 		initialStep: initialStep,
 	}
 }
