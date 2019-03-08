@@ -56,14 +56,15 @@ func main() {
 
 	fmt.Println(lastStep.Get("result").(int)) // 9
 
-    // if something bad happen you only need to resume the machine
-    lastStep, err = m.Resume("addFiveStep")
-    if err != nil {
-        panic(err)
-    }
+	// if something bad happen you only need to resume the machine
+	lastStep, err = m.Resume("addFiveStep")
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Println(lastStep.Get("result").(int)) // 9
 }
+
 ```
 
 ### Logging
