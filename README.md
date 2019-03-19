@@ -27,11 +27,6 @@ func sum(last stepmachine.Step, current stepmachine.Step) error {
 	return nil
 }
 
-func restoreSum(last stepmachine.Step, current stepmachine.Step) error {
-	current.Set("result", 4)
-	return nil
-}
-
 func addFive(last stepmachine.Step, current stepmachine.Step) error {
 	result := last.Get("result").(int)
 	result += 5
@@ -41,17 +36,14 @@ func addFive(last stepmachine.Step, current stepmachine.Step) error {
 
 func main() {
 	// declare all steps
-	sumStep := stepmachine.NewStep("sum", sum, restoreSum)
-	addFiveStep := stepmachine.NewStep("addFive", addFive, nil)
-
-	// chain all steps together
-	stepmachine.Chain(sumStep, addFiveStep)
+	sumStep := stepmachine.NewStep("sum", sum)
+	addFiveStep := stepmachine.NewStep("addFive", addFive)
 
 	// create a new step machine with the sumStep as initial step
-	m := stepmachine.NewMachine(sumStep)
+	m := stepmachine.NewMachine("my step machine name", sumStep, addFiveStep)
 
 	// run the step machine
-	lastStep, err := m.Run()
+	lastStep, err := m.Run("", nil)
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +51,12 @@ func main() {
 	fmt.Println(lastStep.Get("result").(int)) // 9
 
 	// if something bad happen you only need to resume the machine
-	lastStep, err = m.Resume("addFiveStep")
+    savedValues := map[string]interface{}{
+        "result": 5,
+    }
+    m.Resume("addFiveStep", savedValues)
+
+	lastStep, err = m.Run()
 	if err != nil {
 		panic(err)
 	}

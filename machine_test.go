@@ -9,31 +9,22 @@ var (
 	AnError = errors.New("an error")
 )
 
-func runSum(last Step, current Step) error {
+func runSum(m Machine) error {
 	result := 2 + 2
-	current.Set("result", result)
-	current.Println("runSum executed")
+	m.Set("result", result)
 	return nil
 }
 
-func restoreSum(last Step, current Step) error {
-	current.Set("result", 4)
-	current.Set("restored", true)
-	current.Println("restoreSum executed")
-	return nil
-}
-
-func checkSum(last Step, current Step) error {
-	if last.Get("result") != 4 {
+func checkSum(m Machine) error {
+	if m.Get("result") != 4 {
 		return errors.New("invalid last step result")
 	}
 
-	current.Set("success", true)
-	current.Println("checkSum executed")
+	m.Set("success", true)
 	return nil
 }
 
-func errorResult(last Step, current Step) error {
+func errorResult(m Machine) error {
 	return AnError
 }
 
@@ -50,44 +41,47 @@ func TestRunEmptyMachine(t *testing.T) {
 }
 
 func TestSumStepMachine(t *testing.T) {
-	s := NewStep("sum", runSum, restoreSum)
+	s := NewStep("sum", runSum)
 	m := NewMachine("test", s)
 	l, err := m.Run()
 	if err != nil {
 		t.Error(err)
 	}
 
-	if l == nil {
-		t.Error("last successfull step was nil in a not empty machine")
+	if l != s {
+		t.Errorf("unexpected last step, got %s", l.ID())
 	}
 }
 
 func TestSumStepMachineResultIsAccessable(t *testing.T) {
-	s1 := NewStep("step1", runSum, restoreSum)
-	s2 := NewStep("step2", checkSum, nil)
-	Chain(s1, s2)
+	s1 := NewStep("step1", runSum)
+	s2 := NewStep("step2", checkSum)
+	m := NewMachine("test", s1, s2)
 
-	m := NewMachine("test", s1)
 	l, err := m.Run()
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
 
-	if l == nil {
-		t.Error("last successfull step was nil")
-	} else {
-		if l.Get("success") == nil {
-			t.Error("invalid value")
-		}
+	if l != s2 {
+		t.Errorf("last step was %s, not step2", l.ID())
+	}
+
+	if m.Get("success") == nil {
+		t.Error("invalid value")
+	}
+
+	success := m.Get("success").(bool)
+	if !success {
+		t.Error("unexpected result")
 	}
 }
 
 func TestSumStepMachineReturnErrorStepWhenAnErrorHappen(t *testing.T) {
-	s1 := NewStep("step1", runSum, restoreSum)
-	s2 := NewStep("step2", errorResult, nil)
-	Chain(s1, s2)
+	s1 := NewStep("step1", runSum)
+	s2 := NewStep("step2", errorResult)
 
-	m := NewMachine("test", s1)
+	m := NewMachine("test", s1, s2)
 	l, err := m.Run()
 	if err == nil {
 		t.Error("an error was expected")
@@ -98,37 +92,39 @@ func TestSumStepMachineReturnErrorStepWhenAnErrorHappen(t *testing.T) {
 	}
 }
 
-func TestSumStepMachineResumeToCorrectStep(t *testing.T) {
-	s1 := NewStep("step1", runSum, restoreSum)
-	s2 := NewStep("step2", checkSum, nil)
-	Chain(s1, s2)
+func TestSumStepMachineRunToCorrectStep(t *testing.T) {
+	s1 := NewStep("step1", runSum)
+	s2 := NewStep("step2", checkSum)
 
-	m := NewMachine("test", s1)
-	l, err := m.Resume("step2")
+	values := map[string]interface{}{
+		"result": 4,
+	}
+	m := NewMachine("test", s1, s2)
+	m.SetStep("step2")
+	m.SetValues(values)
+	l, err := m.Run()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	if l != s2 {
-		t.Error("last step was not s2")
+		t.Error("last step was not step2")
 	}
 
-	v := s1.Get("restored")
+	v := m.Get("result")
 	if v == nil {
-		t.Error("s1 was not restored")
+		t.Error("result is incorrect")
 	} else {
-		if v.(bool) != true {
-			t.Error("s1 was not correctly restored")
+		if v.(int) == 0 {
+			t.Error("result as an invalid value")
 		}
 	}
 }
 
 func TestOnStepChangeRuns(t *testing.T) {
-	s1 := NewStep("step1", runSum, restoreSum)
-	s2 := NewStep("step2", checkSum, nil)
-	Chain(s1, s2)
-
-	m := NewMachine("test", s1)
+	s1 := NewStep("step1", runSum)
+	s2 := NewStep("step2", checkSum)
+	m := NewMachine("test", s1, s2)
 
 	fromReceived := []Step{}
 	toReceived := []Step{}
@@ -149,11 +145,9 @@ func TestOnStepChangeRuns(t *testing.T) {
 }
 
 func TestOnStepErrorRuns(t *testing.T) {
-	s1 := NewStep("step1", runSum, restoreSum)
-	s2 := NewStep("step2", errorResult, nil)
-	Chain(s1, s2)
-
-	m := NewMachine("test", s1)
+	s1 := NewStep("step1", runSum)
+	s2 := NewStep("step2", errorResult)
+	m := NewMachine("test", s1, s2)
 
 	var stepReceived Step
 	var errorReceived error
@@ -173,20 +167,50 @@ func TestOnStepErrorRuns(t *testing.T) {
 	}
 }
 
-func TestOnStepRestoreRuns(t *testing.T) {
-	s1 := NewStep("step1", nil, restoreSum)
-	s2 := NewStep("step2", checkSum, nil)
-	Chain(s1, s2)
-
+func TestMachineReturnsCorrectlyValues(t *testing.T) {
+	s1 := NewStep("step1", runSum)
 	m := NewMachine("test", s1)
 
-	var stepReceived Step
-	m.OnStepRestore(func(step Step) {
-		stepReceived = step
-	})
+	m.Run()
 
-	m.Resume("step2")
-	if stepReceived != s1 {
-		t.Errorf("unexpected step was restored: %v", stepReceived)
+	values := m.Values()
+	if values["result"] == nil {
+		t.Error("result was not set in returned values list")
+	}
+}
+
+func TestMachineCorrectlySetValuesWhenRun(t *testing.T) {
+	values := map[string]interface{}{
+		"testing": "values",
+	}
+
+	s1 := NewStep("step1", runSum)
+	m := NewMachine("test", s1)
+	m.SetValues(values)
+	m.Run()
+
+	if m.Values()["testing"] != "values" {
+		t.Errorf("values where not correctly restored")
+	}
+}
+
+func TestMachineCanResume(t *testing.T) {
+	values := map[string]interface{}{
+		"result":  4,
+		"testing": "values",
+	}
+
+	s1 := NewStep("step1", runSum)
+	s2 := NewStep("step2", checkSum)
+	m := NewMachine("test", s1, s2)
+	m.Resume("step2", values)
+
+	l, err := m.Run()
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+
+	if l != s2 {
+		t.Errorf("last step was %s, not step2", l.ID())
 	}
 }
