@@ -51,17 +51,16 @@ func main() {
 	fmt.Println(lastStep.Get("result").(int)) // 9
 
 	// if something bad happen you only need to resume the machine
-    savedValues := map[string]interface{}{
-        "result": 5,
-    }
-    m.Resume("addFiveStep", savedValues)
-
-	lastStep, err = m.Run()
+    	savedValues := map[string]interface{}{
+        	"result": 5,
+    	}
+    	m.Resume("addFiveStep", savedValues)
+	_, err = m.Run()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(lastStep.Get("result").(int)) // 9
+	fmt.Println(m.Get("result").(int)) // 9
 }
 
 ```
