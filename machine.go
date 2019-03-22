@@ -5,6 +5,7 @@ import (
 )
 
 type Machine interface {
+	IsSet(key string) bool
 	Get(key string) interface{}
 	Set(key string, value interface{})
 	SetStep(stepID string)
@@ -29,6 +30,10 @@ type machine struct {
 var (
 	ErrStepNotFound = errors.New("step not found")
 )
+
+func (m *machine) IsSet(key string) bool {
+	return m.values[key] != nil
+}
 
 func (m *machine) Get(key string) interface{} {
 	return m.values[key]
@@ -100,18 +105,23 @@ func (m *machine) OnStepError(fn func(step Step, err error)) {
 }
 
 func NewMachine(name string, steps ...Step) *machine {
-	// chain steps
-	if len(steps) > 1 {
-		lastStep := steps[0]
-		for i := 1; i < len(steps); i++ {
-			lastStep.SetNext(steps[i])
-			lastStep = steps[i]
+	var initialStep Step
+	if steps != nil {
+		initialStep = steps[0]
+
+		// chain steps
+		if len(steps) > 1 {
+			lastStep := steps[0]
+			for i := 1; i < len(steps); i++ {
+				lastStep.SetNext(steps[i])
+				lastStep = steps[i]
+			}
 		}
 	}
 
 	return &machine{
 		name:        name,
-		initialStep: steps[0],
+		initialStep: initialStep,
 		values:      make(map[string]interface{}),
 	}
 }

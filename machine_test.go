@@ -214,3 +214,15 @@ func TestMachineCanResume(t *testing.T) {
 		t.Errorf("last step was %s, not step2", l.ID())
 	}
 }
+
+func TestMachineIsSet(t *testing.T) {
+	m := NewMachine("test")
+	if m.IsSet("value") {
+		t.Error("value key is expected to be false")
+	}
+
+	m.Set("value", false)
+	if !m.IsSet("value") {
+		t.Error("value key is expected to be true")
+	}
+}
